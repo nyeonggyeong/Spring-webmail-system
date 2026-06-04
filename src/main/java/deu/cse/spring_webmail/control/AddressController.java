@@ -39,14 +39,29 @@ public class AddressController {
     public String addAddressDo(@RequestParam String name, @RequestParam String email, 
                                @RequestParam String phone, RedirectAttributes attrs) {
         String userid = (String) session.getAttribute("userid");
-        
+        if (userid == null) return "redirect:/";
+
+        // 💡 [핵심 추가] 백엔드 유효성 검사 (Validation - 예방 유지보수)
+        // 1. 이름이 비어있는지 검사
+        if (name == null || name.trim().isEmpty()) {
+            attrs.addFlashAttribute("msg", "이름을 반드시 입력해야 합니다.");
+            return "redirect:/address_book";
+        }
+
+        // 2. 정규식(Regex)을 이용한 이메일 형식 검사
+        String emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
+        if (email == null || !email.matches(emailRegex)) {
+            attrs.addFlashAttribute("msg", "올바른 이메일 형식이 아닙니다. (예: test@gmail.com)");
+            return "redirect:/address_book";
+        }
+
+        // 기존 로직: 데이터 세팅 및 DB 저장
         AddressBookDto dto = new AddressBookDto();
         dto.setUserid(userid);
-        dto.setName(name);
-        dto.setEmail(email);
-        dto.setPhone(phone);
+        dto.setName(name.trim()); // 양끝 공백 제거 후 저장
+        dto.setEmail(email.trim());
+        dto.setPhone(phone.trim());
 
-        // 주입받은 빈(Bean) 사용
         if (addressBookAgent.addAddress(dto)) {
             attrs.addFlashAttribute("msg", "주소록 등록에 성공했습니다.");
         } else {

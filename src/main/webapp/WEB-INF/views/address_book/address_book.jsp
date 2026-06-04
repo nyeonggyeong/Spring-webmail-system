@@ -21,7 +21,7 @@
 
         <div id="main">
             <h2>주소록 등록</h2>
-            <form method="POST" action="address_book.do">
+            <form method="POST" action="address_book.do" onsubmit="return validateForm()">
                 <table>
                     <tr>
                         <td>이름</td>
@@ -64,5 +64,28 @@
         </div>
 
         <%@include file="../footer.jspf"%>
+        
+        <script>
+            function validateForm() {
+                // 이름과 이메일 입력칸의 값을 가져옴
+                var name = document.querySelector("input[name='name']").value;
+                var email = document.querySelector("input[name='email']").value;
+
+                if (name.trim() === "") {
+                    alert("이름을 공백 없이 정확히 입력해주세요!");
+                    document.querySelector("input[name='name']").focus();
+                    return false; // 서버로 전송 중단
+                }
+
+                var emailPattern = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
+                if (!emailPattern.test(email)) {
+                    alert("올바른 이메일 형식이 아닙니다!\n(예: test@email.com)");
+                    document.querySelector("input[name='email']").focus();
+                    return false; // 서버로 전송 중단
+                }
+
+                return true;
+            }
+        </script>
     </body>
 </html>
