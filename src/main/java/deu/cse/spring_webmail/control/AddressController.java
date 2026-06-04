@@ -19,7 +19,6 @@ public class AddressController {
     @Autowired
     private HttpSession session;
 
-    // 💡 new 키워드 대신 스프링에게 주소록 에이전트 관리를 위임함 (예방 유지보수 적용)
     @Autowired
     private AddressBookAgent addressBookAgent;
 
@@ -29,7 +28,6 @@ public class AddressController {
         String userid = (String) session.getAttribute("userid");
         if (userid == null) return "redirect:/"; 
 
-        // 인스턴스를 직접 생성하지 않고 주입받은 빈(Bean) 사용
         model.addAttribute("addressList", addressBookAgent.getAddressList(userid));
         return "address_book/address_book";
     }
@@ -41,21 +39,17 @@ public class AddressController {
         String userid = (String) session.getAttribute("userid");
         if (userid == null) return "redirect:/";
 
-        // 💡 [핵심 추가] 백엔드 유효성 검사 (Validation - 예방 유지보수)
-        // 1. 이름이 비어있는지 검사
         if (name == null || name.trim().isEmpty()) {
             attrs.addFlashAttribute("msg", "이름을 반드시 입력해야 합니다.");
             return "redirect:/address_book";
         }
 
-        // 2. 정규식(Regex)을 이용한 이메일 형식 검사
         String emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
         if (email == null || !email.matches(emailRegex)) {
             attrs.addFlashAttribute("msg", "올바른 이메일 형식이 아닙니다. (예: test@gmail.com)");
             return "redirect:/address_book";
         }
 
-        // 기존 로직: 데이터 세팅 및 DB 저장
         AddressBookDto dto = new AddressBookDto();
         dto.setUserid(userid);
         dto.setName(name.trim()); // 양끝 공백 제거 후 저장
@@ -67,6 +61,21 @@ public class AddressController {
         } else {
             attrs.addFlashAttribute("msg", "주소록 등록에 실패했습니다.");
         }
+        return "redirect:/address_book";
+    }
+    @GetMapping("/address_delete.do")
+    public String deleteAddress(@RequestParam int id, RedirectAttributes attrs) {
+        String userid = (String) session.getAttribute("userid");
+        if (userid == null) return "redirect:/"; // 로그인 안 되어있으면 튕겨냄
+
+        // DB 삭제 에이전트 호출
+        if (addressBookAgent.deleteAddress(id, userid)) {
+            attrs.addFlashAttribute("msg", "주소록이 안전하게 삭제되었습니다.");
+        } else {
+            attrs.addFlashAttribute("msg", "주소록 삭제에 실패했습니다.");
+        }
+        
+        // 삭제 후 다시 주소록 목록 화면으로 새로고침
         return "redirect:/address_book";
     }
 }

@@ -59,5 +59,18 @@ public class AddressBookAgent {
             log.error("주소록 조회 중 데이터베이스 오류 발생: {}", e.getMessage(), e);
             return List.of(); // 오류 시 안전하게 빈 리스트 반환
         }
+        
+    }
+    public boolean deleteAddress(int id, String userid) {
+        String sql = "DELETE FROM address_book WHERE id = ? AND userid = ?";
+        
+        try {
+            // id와 userid가 모두 일치하는 데이터만 안전하게 삭제
+            int result = jdbcTemplate.update(sql, id, userid);
+            return result > 0;
+        } catch (Exception e) {
+            log.error("주소록 삭제 중 데이터베이스 오류 발생: {}", e.getMessage(), e);
+            return false;
+        }
     }
 }

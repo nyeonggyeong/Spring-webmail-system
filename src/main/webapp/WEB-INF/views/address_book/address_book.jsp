@@ -52,16 +52,20 @@
                     <th>이름</th>
                     <th>이메일 주소</th>
                     <th>전화번호</th>
-                </tr>
+                    <th>관리</th> </tr>
                 <c:forEach items="${addressList}" var="addr">
                     <tr>
                         <td>${addr.name}</td>
                         <td>${addr.email}</td>
                         <td>${addr.phone}</td>
+                        <td>
+                            <a href="address_delete.do?id=${addr.id}" onclick="return confirm('정말 삭제하시겠습니까?');">
+                                <button type="button">삭제</button>
+                            </a>
+                        </td>
                     </tr>
                 </c:forEach>
             </table>
-        </div>
 
         <%@include file="../footer.jspf"%>
         
