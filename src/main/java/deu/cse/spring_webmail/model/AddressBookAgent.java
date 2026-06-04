@@ -15,7 +15,7 @@ public class AddressBookAgent {
     private final String dbUser;
     private final String dbPass;
 
-    // 💡 생성자 주입 단계를 보완하여 드라이버 누락 에러를 완벽하게 방지합니다.
+    // 💡 불필요한 드라이버 강제 로딩 코드를 제거하고 깔끔하게 생성자 주입만 남김
     public AddressBookAgent(
             @Value("${spring.datasource.url}") String dbUrl,
             @Value("${spring.datasource.username}") String dbUser,
@@ -23,19 +23,10 @@ public class AddressBookAgent {
         this.dbUrl = dbUrl;
         this.dbUser = dbUser;
         this.dbPass = dbPass;
-        
-        // 💡 [핵심 추가] DriverManager가 MariaDB 드라이버를 찾을 수 있도록 명시적으로 로딩을 수행합니다!
-        try {
-            Class.forName("org.mariadb.jdbc.Driver");
-            log.info("MariaDB JDBC 드라이버 클래스 로딩 성공!");
-        } catch (ClassNotFoundException e) {
-            log.error("MariaDB 드라이버를 클래스 패스에서 찾을 수 없습니다: {}", e.getMessage());
-        }
-        
         log.info("AddressBookAgent 스프링 빈 생성 완료. URL: {}", dbUrl);
     }
 
-    // 주소록 등록 기능 (기존과 동일)
+    // 주소록 등록 기능
     public boolean addAddress(AddressBookDto address) {
         String sql = "INSERT INTO address_book (userid, name, email, phone) VALUES (?, ?, ?, ?)";
         
@@ -49,12 +40,13 @@ public class AddressBookAgent {
             
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
+            // 💡 네트워크 단절, 문법 오류 등 진짜 DB 에러를 잡기 위해 SQLException 처리는 유지
             log.error("주소록 추가 중 데이터베이스 오류 발생: {}", e.getMessage(), e);
             return false;
         }
     }
 
-    // 주소록 목록 가져오기 기능 (기존과 동일)
+    // 주소록 목록 가져오기 기능
     public List<AddressBookDto> getAddressList(String userid) {
         List<AddressBookDto> list = new ArrayList<>();
         String sql = "SELECT * FROM address_book WHERE userid = ? ORDER BY name ASC";
