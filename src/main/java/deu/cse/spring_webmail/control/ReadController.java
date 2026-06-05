@@ -157,7 +157,7 @@ public class ReadController {
 
         return "read_mail/email_trash";
     }
-    
+
     @GetMapping("/restore_trash.do")
     public String restoreTrashDo(@RequestParam("id") Integer id, RedirectAttributes attrs) {
         String host = (String) session.getAttribute("host");
@@ -166,20 +166,31 @@ public class ReadController {
         EmailTrashDto trash = emailTrashAgent.getTrash(id, userid);
         if (trash != null) {
             SmtpAgent agent = new SmtpAgent(host, userid);
-            agent.setTo(userid + "@" + host); 
+            agent.setTo(userid + "@" + host);
             agent.setCc("");
             agent.setSubj("[휴지통 복구] " + trash.getSubject());
-            
-            String restoreBody = String.format("원래 보낸 사람: %s\n\n[원래 본문]\n%s", 
-                                               trash.getSender(), trash.getBody());
+
+            String restoreBody = String.format("원래 보낸 사람: %s\n\n[원래 본문]\n%s",
+                    trash.getSender(), trash.getBody());
             agent.setBody(restoreBody);
-            
+
+            emailTrashAgent.deleteTrash(id, userid);
+
             if (agent.sendMessage()) {
-                emailTrashAgent.deleteTrash(id, userid);
                 attrs.addFlashAttribute("msg", "메일이 성공적으로 복구(재수신) 되었습니다.");
             } else {
-                attrs.addFlashAttribute("msg", "메일 복구 발송에 실패했습니다.");
+                attrs.addFlashAttribute("msg", "복구 메일 발송에 실패했습니다. (DB에서는 삭제됨)");
             }
+        }
+        return "redirect:/email_trash";
+    }
+
+    @GetMapping("/empty_trash.do")
+    public String emptyTrashDo(RedirectAttributes attrs) {
+        String userid = (String) session.getAttribute("userid");
+        if (userid != null) {
+            emailTrashAgent.emptyTrash(userid);
+            attrs.addFlashAttribute("msg", "휴지통이 모두 비워졌습니다.");
         }
         return "redirect:/email_trash";
     }

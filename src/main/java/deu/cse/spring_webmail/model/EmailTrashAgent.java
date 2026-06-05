@@ -29,8 +29,8 @@ public class EmailTrashAgent {
     public boolean insertTrash(EmailTrashDto trash) {
         String sql = "INSERT INTO email_trash (userid, sender, subject, body) VALUES (?, ?, ?, ?)";
         try {
-            return jdbcTemplate.update(sql, trash.getUserid(), trash.getSender(), 
-                                       trash.getSubject(), trash.getBody()) > 0;
+            return jdbcTemplate.update(sql, trash.getUserid(), trash.getSender(),
+                    trash.getSubject(), trash.getBody()) > 0;
         } catch (Exception e) {
             log.error("휴지통 저장 중 오류 발생: {}", e.getMessage(), e);
             return false;
@@ -56,7 +56,7 @@ public class EmailTrashAgent {
             return List.of();
         }
     }
-    
+
     // 3. 특정 휴지통 메일 가져오기 (복구용)
     public EmailTrashDto getTrash(int id, String userid) {
         String sql = "SELECT * FROM email_trash WHERE id = ? AND userid = ?";
@@ -82,6 +82,17 @@ public class EmailTrashAgent {
         try {
             return jdbcTemplate.update(sql, id, userid) > 0;
         } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public boolean emptyTrash(String userid) {
+        String sql = "DELETE FROM email_trash WHERE userid = ?";
+        try {
+            jdbcTemplate.update(sql, userid);
+            return true;
+        } catch (Exception e) {
+            log.error("휴지통 비우기 오류: {}", e.getMessage());
             return false;
         }
     }

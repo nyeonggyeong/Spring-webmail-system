@@ -25,8 +25,12 @@
             <jsp:include page="../sidebar_menu.jsp" />
         </div>
 
-        <div id="main">
-            <h2>🗑️ 메일 휴지통</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h2 style="margin: 0;">🗑️ 메일 휴지통</h2>
+                <a href="empty_trash.do" onclick="return confirm('휴지통을 완전히 비우시겠습니까? 복구할 수 없습니다.');">
+                    <button type="button" style="background-color: #ff9800; color: white; padding: 8px 15px; border: none; font-weight: bold; cursor: pointer;">비우기</button>
+                </a>
+            </div>
             <p style="color: gray; margin-bottom: 20px;">삭제된 메일들이 보관되는 곳입니다.</p>
 
             <table>
