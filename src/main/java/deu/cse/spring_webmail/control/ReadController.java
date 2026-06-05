@@ -8,6 +8,7 @@ package deu.cse.spring_webmail.control;
 import deu.cse.spring_webmail.model.EmailTrashAgent;
 import deu.cse.spring_webmail.model.EmailTrashDto;
 import deu.cse.spring_webmail.model.Pop3Agent;
+import deu.cse.spring_webmail.model.SmtpAgent;
 
 import jakarta.mail.internet.MimeUtility;
 import java.io.File;
@@ -155,5 +156,42 @@ public class ReadController {
         model.addAttribute("trashList", emailTrashAgent.getTrashList(userid));
 
         return "read_mail/email_trash";
+    }
+    
+    @GetMapping("/restore_trash.do")
+    public String restoreTrashDo(@RequestParam("id") Integer id, RedirectAttributes attrs) {
+        String host = (String) session.getAttribute("host");
+        String userid = (String) session.getAttribute("userid");
+
+        EmailTrashDto trash = emailTrashAgent.getTrash(id, userid);
+        if (trash != null) {
+            SmtpAgent agent = new SmtpAgent(host, userid);
+            agent.setTo(userid + "@" + host); 
+            agent.setCc("");
+            agent.setSubj("[휴지통 복구] " + trash.getSubject());
+            
+            String restoreBody = String.format("원래 보낸 사람: %s\n\n[원래 본문]\n%s", 
+                                               trash.getSender(), trash.getBody());
+            agent.setBody(restoreBody);
+            
+            if (agent.sendMessage()) {
+                emailTrashAgent.deleteTrash(id, userid);
+                attrs.addFlashAttribute("msg", "메일이 성공적으로 복구(재수신) 되었습니다.");
+            } else {
+                attrs.addFlashAttribute("msg", "메일 복구 발송에 실패했습니다.");
+            }
+        }
+        return "redirect:/email_trash";
+    }
+
+    @GetMapping("/delete_trash.do")
+    public String deleteTrashDo(@RequestParam("id") Integer id, RedirectAttributes attrs) {
+        String userid = (String) session.getAttribute("userid");
+        if (emailTrashAgent.deleteTrash(id, userid)) {
+            attrs.addFlashAttribute("msg", "메일이 영구 삭제되었습니다.");
+        } else {
+            attrs.addFlashAttribute("msg", "영구 삭제에 실패했습니다.");
+        }
+        return "redirect:/email_trash";
     }
 }

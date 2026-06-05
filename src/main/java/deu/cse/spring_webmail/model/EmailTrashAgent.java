@@ -56,4 +56,33 @@ public class EmailTrashAgent {
             return List.of();
         }
     }
+    
+    // 3. 특정 휴지통 메일 가져오기 (복구용)
+    public EmailTrashDto getTrash(int id, String userid) {
+        String sql = "SELECT * FROM email_trash WHERE id = ? AND userid = ?";
+        try {
+            return jdbcTemplate.queryForObject(sql, (rs, rowNum) -> {
+                EmailTrashDto dto = new EmailTrashDto();
+                dto.setId(rs.getInt("id"));
+                dto.setUserid(rs.getString("userid"));
+                dto.setSender(rs.getString("sender"));
+                dto.setSubject(rs.getString("subject"));
+                dto.setBody(rs.getString("body"));
+                return dto;
+            }, id, userid);
+        } catch (Exception e) {
+            log.error("휴지통 메일 조회 오류: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    //  4. 휴지통에서 영구 삭제
+    public boolean deleteTrash(int id, String userid) {
+        String sql = "DELETE FROM email_trash WHERE id = ? AND userid = ?";
+        try {
+            return jdbcTemplate.update(sql, id, userid) > 0;
+        } catch (Exception e) {
+            return false;
+        }
+    }
 }
