@@ -60,13 +60,13 @@ public class ReadController {
     @GetMapping("/show_message")
     public String showMessage(@RequestParam Integer msgid, Model model) {
         log.debug("download_folder = {}", DOWNLOAD_FOLDER);
-        
+
         Pop3Agent pop3 = new Pop3Agent();
         pop3.setHost((String) session.getAttribute("host"));
         pop3.setUserid((String) session.getAttribute("userid"));
         pop3.setPassword((String) session.getAttribute("password"));
         pop3.setRequest(request);
-        
+
         String msg = pop3.getMessage(msgid);
         session.setAttribute("sender", pop3.getSender());  // 220612 LJM - added
         session.setAttribute("subject", pop3.getSubject());
@@ -74,7 +74,7 @@ public class ReadController {
         model.addAttribute("msg", msg);
         return "/read_mail/show_message";
     }
-    
+
     @GetMapping("/download")
     public ResponseEntity<Resource> download(@RequestParam("userid") String userId,
             @RequestParam("filename") String fileName) {
@@ -113,35 +113,47 @@ public class ReadController {
 
         return new ResponseEntity<>(resource, headers, HttpStatus.OK);
     }
-    
+
     @GetMapping("/delete_mail.do")
     public String deleteMailDo(@RequestParam("msgid") Integer msgId, RedirectAttributes attrs) {
         log.debug("delete_mail.do: msgid = {}", msgId);
-        
+
         String host = (String) session.getAttribute("host");
         String userid = (String) session.getAttribute("userid");
         String password = (String) session.getAttribute("password");
 
         Pop3Agent pop3 = new Pop3Agent(host, userid, password);
         pop3.setRequest(request);
-        
-        pop3.getMessage(msgId); 
-        
+
+        pop3.getMessage(msgId);
+
         EmailTrashDto trashInfo = new EmailTrashDto();
         trashInfo.setUserid(userid);
         trashInfo.setSender(pop3.getSender());
         trashInfo.setSubject(pop3.getSubject());
         trashInfo.setBody(pop3.getBody());
-        
-        emailTrashAgent.insertTrash(trashInfo); 
-        
+
+        emailTrashAgent.insertTrash(trashInfo);
+
         boolean deleteSuccessful = pop3.deleteMessage(msgId, true);
         if (deleteSuccessful) {
             attrs.addFlashAttribute("msg", "메시지가 휴지통으로 이동되었습니다.");
         } else {
             attrs.addFlashAttribute("msg", "메시지 삭제를 실패하였습니다.");
         }
-        
+
         return "redirect:/main_menu";
+    }
+
+    @GetMapping("/email_trash")
+    public String emailTrash(Model model) {
+        String userid = (String) session.getAttribute("userid");
+        if (userid == null) {
+            return "redirect:/";
+        }
+
+        model.addAttribute("trashList", emailTrashAgent.getTrashList(userid));
+
+        return "read_mail/email_trash";
     }
 }

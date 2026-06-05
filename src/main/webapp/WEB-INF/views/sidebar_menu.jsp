@@ -1,4 +1,4 @@
-<%-- 
+    <%-- 
     Document   : sidebar_menu
     Created on : 2022. 6. 10., 오후 3:25:30
     Author     : skylo
@@ -20,6 +20,8 @@
 
         <p> <a href="main_menu"> 메일 읽기 </a> </p>
         <p> <a href="write_mail"> 메일 쓰기 </a> </p>
-        <p> <a href="address_book"> 주소록 관리 </a> </p> <p><a href="login.do?menu=<%= CommandType.LOGOUT %>">로그아웃</a></p>
+        <p> <a href="address_book"> 주소록 관리 </a> </p>
+        <p> <a href="email_trash"> 휴지통 </a> </p>
+        <p><a href="login.do?menu=<%= CommandType.LOGOUT %>">로그아웃</a></p>
     </body>
 </html>
