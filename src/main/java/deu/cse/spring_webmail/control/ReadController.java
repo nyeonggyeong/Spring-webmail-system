@@ -205,4 +205,16 @@ public class ReadController {
         }
         return "redirect:/email_trash";
     }
+    
+    @Autowired
+    private deu.cse.spring_webmail.model.SentMailAgent sentMailAgent;
+
+    @GetMapping("/sent_mail")
+    public String sentMail(Model model) {
+        String userid = (String) session.getAttribute("userid");
+        if (userid == null) return "redirect:/";
+
+        model.addAttribute("sentList", sentMailAgent.getSentMailList(userid));
+        return "read_mail/sent_mail"; 
+    }
 }

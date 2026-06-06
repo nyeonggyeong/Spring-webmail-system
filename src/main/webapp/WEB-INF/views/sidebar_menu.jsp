@@ -18,8 +18,9 @@
         
         <span style="color: indigo"> <strong>사용자: <%= session.getAttribute("userid") %> </strong> </span> <br>
 
-        <p> <a href="main_menu"> 메일 읽기 </a> </p>
+        <p> <a href="main_menu"> 메일 읽기</a> </p>
         <p> <a href="write_mail"> 메일 쓰기 </a> </p>
+        <p> <a href="sent_mail"> 보낸 메일 </a> </p>
         <p> <a href="address_book"> 주소록 관리 </a> </p>
         <p> <a href="email_trash"> 휴지통 </a> </p>
         <p><a href="login.do?menu=<%= CommandType.LOGOUT %>">로그아웃</a></p>
