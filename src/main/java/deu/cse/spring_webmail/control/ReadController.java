@@ -8,6 +8,7 @@ package deu.cse.spring_webmail.control;
 import deu.cse.spring_webmail.model.EmailTrashAgent;
 import deu.cse.spring_webmail.model.EmailTrashDto;
 import deu.cse.spring_webmail.model.Pop3Agent;
+import deu.cse.spring_webmail.model.SentMailDto;
 import deu.cse.spring_webmail.model.SmtpAgent;
 
 import jakarta.mail.internet.MimeUtility;
@@ -205,16 +206,40 @@ public class ReadController {
         }
         return "redirect:/email_trash";
     }
-    
+
     @Autowired
     private deu.cse.spring_webmail.model.SentMailAgent sentMailAgent;
 
     @GetMapping("/sent_mail")
     public String sentMail(Model model) {
         String userid = (String) session.getAttribute("userid");
-        if (userid == null) return "redirect:/";
+        if (userid == null) {
+            return "redirect:/";
+        }
 
         model.addAttribute("sentList", sentMailAgent.getSentMailList(userid));
-        return "read_mail/sent_mail"; 
+        return "read_mail/sent_mail";
+    }
+
+    @GetMapping("/show_sent_message")
+    public String showSentMessage(@RequestParam("id") Integer id, Model model) {
+        String userid = (String) session.getAttribute("userid");
+        if (userid == null) {
+            return "redirect:/";
+        }
+
+        SentMailDto sentMail = sentMailAgent.getSentMail(id, userid);
+        model.addAttribute("mail", sentMail);
+
+        return "read_mail/show_sent_message";
+    }
+
+    @GetMapping("/delete_sent_mail.do")
+    public String deleteSentMailDo(@RequestParam("id") Integer id, RedirectAttributes attrs) {
+        String userid = (String) session.getAttribute("userid");
+        if (userid != null && sentMailAgent.deleteSentMail(id, userid)) {
+            attrs.addFlashAttribute("msg", "보낸 편지함에서 내역이 삭제되었습니다.");
+        }
+        return "redirect:/sent_mail";
     }
 }

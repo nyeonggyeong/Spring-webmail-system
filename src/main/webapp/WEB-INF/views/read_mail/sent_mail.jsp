@@ -23,7 +23,7 @@
         <div id="main">
             <h2>보낸 메일함</h2>
             <p style="color: gray; margin-bottom: 20px;">내가 발송한 메일 기록입니다.</p>
-            
+
             <table>
                 <tr>
                     <th>No.</th>
@@ -34,8 +34,17 @@
                     <tr style="background-color: #f0f8ff;">
                         <td style="text-align: center;">${status.count}</td>
                         <td style="text-align: center;">${mail.receiver}</td>
-                        <td>${mail.subject}</td>
+                        <td>
+                            <a href="show_sent_message?id=${mail.id}" style="text-decoration: none; color: #0066cc; font-weight: bold;">
+                                ${mail.subject}
+                            </a>
+                        </td>
                         <td style="text-align: center;">${mail.sentDate}</td>
+                        <td style="text-align: center;">
+                            <a href="delete_sent_mail.do?id=${mail.id}" onclick="return confirm('이 발송 내역을 삭제하시겠습니까?');">
+                                <button type="button" style="background-color: #f44336; color: white; border: none; padding: 3px 8px; cursor: pointer;">삭제</button>
+                            </a>
+                        </td>
                     </tr>
                 </c:forEach>
                 <c:if test="${empty sentList}">
