@@ -64,18 +64,12 @@ public class Pop3Agent {
         }
 
         try {
-            // Folder 설정
-//            Folder folder = store.getDefaultFolder();
             Folder folder = store.getFolder("INBOX");
             folder.open(Folder.READ_WRITE);
 
-            // Message에 DELETED flag 설정
             Message msg = folder.getMessage(msgid);
             msg.setFlag(Flags.Flag.DELETED, really_delete);
 
-            // 폴더에서 메시지 삭제
-            // Message [] expungedMessage = folder.expunge();
-            // <-- 현재 지원 안 되고 있음. 폴더를 close()할 때 expunge해야 함.
             folder.close(true);  // expunge == true
             store.close();
             status = true;
@@ -86,41 +80,67 @@ public class Pop3Agent {
         }
     }
 
-    /*
-     * 페이지 단위로 메일 목록을 보여주어야 함.
-     */
-    public String getMessageList() {
+    public int getTotalMessageCount() {
+        int count = 0;
+        if (!connectToStore()) {
+            return count;
+        }
+        try {
+            Folder folder = store.getFolder("INBOX");
+            folder.open(Folder.READ_ONLY);
+            count = folder.getMessageCount();
+            folder.close(false);
+            store.close();
+        } catch (Exception ex) {
+            log.error("Pop3Agent.getTotalMessageCount() 예외: {}", ex.getMessage());
+        }
+        return count;
+    }
+
+    public String getMessageList(int page, int pageSize) {
         String result = "";
         Message[] messages = null;
 
-        if (!connectToStore()) {  // 3.1
+        if (!connectToStore()) {
             log.error("POP3 connection failed!");
             return "POP3 연결이 되지 않아 메일 목록을 볼 수 없습니다.";
         }
 
         try {
-            // 메일 폴더 열기
-            Folder folder = store.getFolder("INBOX");  // 3.2
-            folder.open(Folder.READ_ONLY);  // 3.3
+            Folder folder = store.getFolder("INBOX");
+            folder.open(Folder.READ_ONLY);
 
-            // 현재 수신한 메시지 모두 가져오기
-            messages = folder.getMessages();      // 3.4
-            FetchProfile fp = new FetchProfile();
-            // From, To, Cc, Bcc, ReplyTo, Subject & Date
-            fp.add(FetchProfile.Item.ENVELOPE);
-            folder.fetch(messages, fp);
+            int totalMessages = folder.getMessageCount();
 
-            MessageFormatter formatter = new MessageFormatter(userid);  //3.5
-            result = formatter.getMessageTable(messages);   // 3.6
+            if (totalMessages > 0) {
+                int endIndex = totalMessages - ((page - 1) * pageSize);
+                int startIndex = Math.max(1, endIndex - pageSize + 1);
 
-            folder.close(true);  // 3.7
-            store.close();       // 3.8
+                // 서버에서 startIndex ~ endIndex 구간의 메일만 정확히 뽑아옵니다.
+                messages = folder.getMessages(startIndex, endIndex);
+                
+                FetchProfile fp = new FetchProfile();
+                fp.add(FetchProfile.Item.ENVELOPE);
+                folder.fetch(messages, fp);
+
+                MessageFormatter formatter = new MessageFormatter(userid);
+                result = formatter.getMessageTable(messages);
+            } else {
+                result = "<div style='padding:20px; text-align:center;'>수신된 메시지가 없습니다.</div>";
+            }
+
+            folder.close(true);
+            store.close();
         } catch (Exception ex) {
-            log.error("Pop3Agent.getMessageList() : exception = {}", ex.getMessage());
-            result = "Pop3Agent.getMessageList() : exception = " + ex.getMessage();
+            log.error("Pop3Agent.getMessageList(page) 예외 = {}", ex.getMessage());
+            result = "Pop3Agent.getMessageList(page) 예외 = " + ex.getMessage();
         } finally {
             return result;
         }
+    }
+
+    public String getMessageList() {
+        return getMessageList(1, 1000); 
     }
 
     public String getMessage(int n) {
@@ -138,9 +158,9 @@ public class Pop3Agent {
             Message message = folder.getMessage(n);
 
             MessageFormatter formatter = new MessageFormatter(userid);
-            formatter.setRequest(request);  // 210308 LJM - added
+            formatter.setRequest(request);  
             result = formatter.getMessage(message);
-            sender = formatter.getSender();  // 220612 LJM - added
+            sender = formatter.getSender();  
             subject = formatter.getSubject();
             body = formatter.getBody();
 
@@ -157,11 +177,10 @@ public class Pop3Agent {
     private boolean connectToStore() {
         boolean status = false;
         Properties props = System.getProperties();
-        // https://jakarta.ee/specifications/mail/2.1/apidocs/jakarta.mail/jakarta/mail/package-summary.html
         props.setProperty("mail.pop3.host", host);
         props.setProperty("mail.pop3.user", userid);
         props.setProperty("mail.pop3.apop.enable", "false");
-        props.setProperty("mail.pop3.disablecapa", "true");  // 200102 LJM - added cf. https://javaee.github.io/javamail/docs/api/com/sun/mail/pop3/package-summary.html
+        props.setProperty("mail.pop3.disablecapa", "true");  
         props.setProperty("mail.debug", "false");
         props.setProperty("mail.pop3.debug", "false");
 
@@ -178,5 +197,4 @@ public class Pop3Agent {
             return status;
         }
     }
-    
 }

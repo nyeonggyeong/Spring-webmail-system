@@ -128,14 +128,40 @@ public class SystemController {
     }
 
     @GetMapping("/main_menu")
-    public String mainMenu(Model model) {
-        Pop3Agent pop3 = new Pop3Agent();
-        pop3.setHost((String) session.getAttribute("host"));
-        pop3.setUserid((String) session.getAttribute("userid"));
-        pop3.setPassword((String) session.getAttribute("password"));
+    public String mainMenu(@RequestParam(value = "page", defaultValue = "1") int page, HttpSession session, Model model) {
+        String host = (String) session.getAttribute("host");
+        String userid = (String) session.getAttribute("userid");
+        String password = (String) session.getAttribute("password");
 
-        String messageList = pop3.getMessageList();
-        model.addAttribute("messageList", messageList);
+        if (userid == null) {
+            return "redirect:/";
+        }
+
+        Pop3Agent pop3Agent = new Pop3Agent(host, userid, password);
+
+        // 💡 1. 전체 메일 개수(totalItems)를 구합니다.
+        // Pop3Agent에 이 기능을 새로 추가해야 합니다. (아래 2번 단계에서 진행)
+        int totalItems = pop3Agent.getTotalMessageCount();
+
+        // 💡 2. 페이징 계산
+        int pageSize = 10;
+        int totalPages = (int) Math.ceil((double) totalItems / pageSize);
+        if (page < 1) {
+            page = 1;
+        }
+        if (page > totalPages && totalPages > 0) {
+            page = totalPages;
+        }
+
+        // 💡 3. 현재 페이지에 해당하는 테이블 문자열만 받아옵니다.
+        // Pop3Agent의 getMessageList 메서드에 페이지 정보를 넘기도록 수정할 것입니다.
+        String messageListStr = pop3Agent.getMessageList(page, pageSize);
+
+        // 💡 4. JSP로 결과 전송
+        model.addAttribute("messageList", messageListStr);
+        model.addAttribute("currentPage", page);
+        model.addAttribute("totalPages", totalPages);
+
         return "main_menu";
     }
 
@@ -226,9 +252,9 @@ public class SystemController {
 
     /**
      * https://34codefactory.wordpress.com/2019/06/16/how-to-display-image-in-jsp-using-spring-code-factory/
-     * 
+     *
      * @param imageName
-     * @return 
+     * @return
      */
     @RequestMapping(value = "/get_image/{imageName}")
     @ResponseBody
@@ -248,7 +274,7 @@ public class SystemController {
         byte[] imageInByte;
         try {
             byteArrayOutputStream = new ByteArrayOutputStream();
-            bufferedImage = ImageIO.read(new File(folderPath + File.separator + imageName) );
+            bufferedImage = ImageIO.read(new File(folderPath + File.separator + imageName));
             String format = imageName.substring(imageName.lastIndexOf(".") + 1);
             ImageIO.write(bufferedImage, format, byteArrayOutputStream);
             byteArrayOutputStream.flush();

@@ -5,21 +5,10 @@
 --%>
 
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
-
 <%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
 <%@taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions"%>
 
 <!DOCTYPE html>
-
-<!-- 제어기에서 처리하면 로직 관련 소스 코드 제거 가능!
-<jsp:useBean id="pop3" scope="page" class="deu.cse.spring_webmail.model.Pop3Agent" />
-<%
-            pop3.setHost((String) session.getAttribute("host"));
-            pop3.setUserid((String) session.getAttribute("userid"));
-            pop3.setPassword((String) session.getAttribute("password"));
-%>
--->
-
 <html>
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
@@ -38,9 +27,29 @@
             <jsp:include page="sidebar_menu.jsp" />
         </div>
 
-        <!-- 메시지 삭제 링크를 누르면 바로 삭제되어 실수할 수 있음. 해결 방법은? -->
         <div id="main">
             ${messageList}
+            
+            <div style="text-align: center; margin-top: 25px; font-family: 'Malgun Gothic', sans-serif;">
+                <c:if test="${currentPage > 1}">
+                    <a href="main_menu?page=${currentPage - 1}" style="text-decoration: none; color: #0066cc; margin-right: 12px; font-weight: bold;">[이전]</a>
+                </c:if>
+                
+                <c:forEach var="i" begin="1" end="${totalPages}">
+                    <c:choose>
+                        <c:when test="${i == currentPage}">
+                            <strong style="color: #ef4444; font-size: 1.2em; padding: 0 8px; border-bottom: 2px solid #ef4444;">${i}</strong>
+                        </c:when>
+                        <c:otherwise>
+                            <a href="main_menu?page=${i}" style="text-decoration: none; color: #333; padding: 0 8px;">${i}</a>
+                        </c:otherwise>
+                    </c:choose>
+                </c:forEach>
+                
+                <c:if test="${currentPage < totalPages}">
+                    <a href="main_menu?page=${currentPage + 1}" style="text-decoration: none; color: #0066cc; margin-left: 12px; font-weight: bold;">[다음]</a>
+                </c:if>
+            </div>
         </div>
 
         <%@include file="footer.jspf"%>
