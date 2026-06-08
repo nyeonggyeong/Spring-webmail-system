@@ -4,12 +4,7 @@
 --%>
 
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
-
 <!DOCTYPE html>
-
-<%-- @taglib  prefix="c" uri="http://java.sun.com/jsp/jstl/core" --%>
-
-
 <html>
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
@@ -24,14 +19,13 @@
         </div>
 
         <div id="main">
-            <%-- <jsp:include page="mail_send_form.jsp" /> --%>
             <form enctype="multipart/form-data" method="POST" action="write_mail.do" >
                 <table>
                     <tr>
                         <td> 수신 </td>
-                        <td> <input type="text" name="to" size="80"
-                                    value="${!empty param['sender'] ? param['sender'] : ''}"
-            <!--    value=<%=request.getParameter("recv") == null ? "" : request.getParameter("recv")%>  -->
+                        <td> 
+                            <input type="text" name="to" size="63" id="toField" required value="${!empty param['sender'] ? param['sender'] : ''}">
+                            <button type="button" onclick="openAddressBook()" style="padding: 3px 8px; margin-left: 5px; cursor: pointer; background-color: #6c757d; color: white; border: none; border-radius: 3px;">주소록에서 찾기</button>
                         </td>
                     </tr>
                     <tr>
@@ -49,12 +43,12 @@
                     <tr>  <%-- TextArea    --%>
                         <td colspan="2">
                             <textarea rows="15" name="body" cols="80">${!empty param['sender'] ?
-"
+                                                        "
 
 
 
-----
-" += sessionScope['body'] : ''}</textarea> 
+                                                        ----
+                                                        " += sessionScope['body'] : ''}</textarea> 
                         </td>
                     </tr>
                     <tr>
@@ -70,6 +64,12 @@
                 </table>
             </form>
         </div>
+
+        <script>
+            function openAddressBook() {
+                window.open('address_book_popup', '주소록', 'width=500, height=400, left=100, top=100');
+            }
+        </script>
 
         <%@include file="../footer.jspf"%>
     </body>

@@ -12,13 +12,17 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -48,11 +52,30 @@ public class WriteController {
     @Autowired
     private SentMailAgent sentMailAgent;
 
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
     @GetMapping("/write_mail")
     public String writeMail() {
         log.debug("write_mail called...");
         session.removeAttribute("sender");  // 220612 LJM - 메일 쓰기 시는 
         return "write_mail/write_mail";
+    }
+
+    @GetMapping("/address_book_popup")
+    public String addressBookPopup(Model model) {
+        String userid = (String) session.getAttribute("userid");
+        if (userid != null) {
+            String sql = "SELECT name, email FROM address_book WHERE userid = ?";
+
+            try {
+                List<Map<String, Object>> addressList = jdbcTemplate.queryForList(sql, userid);
+                model.addAttribute("addressList", addressList);
+            } catch (Exception e) {
+                log.error("주소록 불러오기 오류: {}", e.getMessage());
+            }
+        }
+        return "write_mail/address_popup";
     }
 
     @PostMapping("/write_mail.do")
@@ -79,9 +102,9 @@ public class WriteController {
             String userid = (String) session.getAttribute("userid");
             SentMailDto sentMail = new SentMailDto();
             sentMail.setUserid(userid);
-            sentMail.setReceiver(to);     // 받는 사람
-            sentMail.setSubject(subj);    // 제목
-            sentMail.setBody(body);       // 내용
+            sentMail.setReceiver(to);
+            sentMail.setSubject(subj);
+            sentMail.setBody(body);
 
             sentMailAgent.insertSentMail(sentMail); // DB 저장 실행
 
@@ -124,8 +147,8 @@ public class WriteController {
         }
 
         if (agent.sendMessage()) {
-            status = true;
+            status = true;  
         }
         return status;
-    }  // sendMessage()
+    }
 }
