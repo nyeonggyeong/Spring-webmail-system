@@ -10,6 +10,10 @@
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
         <title>메일 쓰기 화면</title>
         <link type="text/css" rel="stylesheet" href="css/main_style.css" />
+        
+        <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js"></script>
+        <link href="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-lite.min.css" rel="stylesheet">
+        <script src="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-lite.min.js"></script>
     </head>
     <body>
         <%@include file="../header.jspf"%>
@@ -40,15 +44,14 @@
                     <tr>
                         <td colspan="2">본  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 문</td>
                     </tr>
-                    <tr>  <%-- TextArea    --%>
+                    <tr>  
                         <td colspan="2">
-                            <textarea rows="15" name="body" cols="80">${!empty param['sender'] ?
-                                                        "
+                            <textarea id="summernote" name="body">${!empty param['sender'] ? "
 
 
 
                                                         ----
-                                                        " += sessionScope['body'] : ''}</textarea> 
+                                                  " += sessionScope['body'] : ''}</textarea> 
                         </td>
                     </tr>
                     <tr>
@@ -66,9 +69,29 @@
         </div>
 
         <script>
+            // 주소록 팝업 스크립트
             function openAddressBook() {
                 window.open('address_book_popup', '주소록', 'width=500, height=400, left=100, top=100');
             }
+
+            // 💡 [추가] Summernote 에디터 초기화 및 UI 설정 스크립트
+            $(document).ready(function() {
+                $('#summernote').summernote({
+                    placeholder: '메일 본문을 자유롭게 작성해주세요.',
+                    tabsize: 2,
+                    height: 350, // 에디터 높이
+                    toolbar: [
+                      // 원하는 도구만 화면에 노출되도록 설정
+                      ['style', ['style']],
+                      ['font', ['bold', 'underline', 'clear']],
+                      ['color', ['color']],
+                      ['para', ['ul', 'ol', 'paragraph']],
+                      ['table', ['table']],
+                      ['insert', ['link', 'picture']],
+                      ['view', ['fullscreen', 'codeview', 'help']]
+                    ]
+                });
+            });
         </script>
 
         <%@include file="../footer.jspf"%>
