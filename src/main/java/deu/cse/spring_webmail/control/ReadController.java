@@ -4,7 +4,6 @@
  */
 package deu.cse.spring_webmail.control;
 
-// 💡 [추가] 휴지통 처리를 위한 DTO와 Agent 임포트
 import deu.cse.spring_webmail.model.EmailTrashAgent;
 import deu.cse.spring_webmail.model.EmailTrashDto;
 import deu.cse.spring_webmail.model.Pop3Agent;
@@ -39,7 +38,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 /**
- *
+ * ReadController - 휴지통 및 보낸 편지함 관리 기능 통합본
+ * [수정 내용]: 기본 생성자가 제거된 Pop3Agent를 매개변수 생성자 구조에 맞게 리팩토링 완료
  * @author Prof.Jong Min Lee
  */
 @Controller
@@ -59,18 +59,23 @@ public class ReadController {
     @Autowired
     private EmailTrashAgent emailTrashAgent;
 
+    @Autowired
+    private deu.cse.spring_webmail.model.SentMailAgent sentMailAgent;
+
     @GetMapping("/show_message")
     public String showMessage(@RequestParam Integer msgid, Model model) {
         log.debug("download_folder = {}", DOWNLOAD_FOLDER);
 
-        Pop3Agent pop3 = new Pop3Agent();
-        pop3.setHost((String) session.getAttribute("host"));
-        pop3.setUserid((String) session.getAttribute("userid"));
-        pop3.setPassword((String) session.getAttribute("password"));
+        String host = (String) session.getAttribute("host");
+        String userid = (String) session.getAttribute("userid");
+        String password = (String) session.getAttribute("password");
+
+        // ✨ [수정 완료] 파라미터가 있는 생성자로 안전하게 변경
+        Pop3Agent pop3 = new Pop3Agent(host, userid, password);
         pop3.setRequest(request);
 
         String msg = pop3.getMessage(msgid);
-        session.setAttribute("sender", pop3.getSender());  // 220612 LJM - added
+        session.setAttribute("sender", pop3.getSender());  
         session.setAttribute("subject", pop3.getSubject());
         session.setAttribute("body", pop3.getBody());
         model.addAttribute("msg", msg);
@@ -127,6 +132,7 @@ public class ReadController {
         Pop3Agent pop3 = new Pop3Agent(host, userid, password);
         pop3.setRequest(request);
 
+        // 메일 본문과 정보를 먼저 필드에 채워넣음
         pop3.getMessage(msgId);
 
         EmailTrashDto trashInfo = new EmailTrashDto();
@@ -135,8 +141,10 @@ public class ReadController {
         trashInfo.setSubject(pop3.getSubject());
         trashInfo.setBody(pop3.getBody());
 
+        // 휴지통 DB 테이블에 인서트
         emailTrashAgent.insertTrash(trashInfo);
 
+        // 실제 메일 서버(Inbox)에서 영구 삭제 처리
         boolean deleteSuccessful = pop3.deleteMessage(msgId, true);
         if (deleteSuccessful) {
             attrs.addFlashAttribute("msg", "메시지가 휴지통으로 이동되었습니다.");
@@ -155,7 +163,6 @@ public class ReadController {
         }
 
         model.addAttribute("trashList", emailTrashAgent.getTrashList(userid));
-
         return "read_mail/email_trash";
     }
 
@@ -206,9 +213,6 @@ public class ReadController {
         }
         return "redirect:/email_trash";
     }
-
-    @Autowired
-    private deu.cse.spring_webmail.model.SentMailAgent sentMailAgent;
 
     @GetMapping("/sent_mail")
     public String sentMail(Model model) {
