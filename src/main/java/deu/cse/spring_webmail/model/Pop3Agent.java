@@ -15,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * Pop3Agent - POP3 메일 서버 연동 및 리팩토링 버전
  * [예방 유지보수]: 데드코드 제거, 디버그 설정 중복 제거, finally 내 return 안티패턴 수정
+ * [기능 추가]: In-Memory Global Sort (최신순 정렬) 및 메일 검색 필터링 로직 통합
  */
 @Slf4j
 public class Pop3Agent {
@@ -48,7 +49,7 @@ public class Pop3Agent {
             log.error("Pop3Agent.validate() error : ", ex);
             status = false;
         }
-        return status; // finally 내부 return 제거
+        return status;
     }
 
     public boolean deleteMessage(int msgid, boolean really_delete) {
@@ -70,10 +71,31 @@ public class Pop3Agent {
         } catch (Exception ex) {
             log.error("deleteMessage() error: {}", ex.getMessage());
         }
-        return status; // finally 내부 return 제거
+        return status; 
     }
 
-    public int getTotalMessageCount() {
+    // 💡 [추가] 검색어 필터링 지원 헬퍼 메서드
+    private boolean isMatch(Message m, String searchType, String keyword) {
+        try {
+            if ("sender".equals(searchType)) {
+                jakarta.mail.Address[] froms = m.getFrom();
+                if (froms != null) {
+                    for (jakarta.mail.Address addr : froms) {
+                        if (addr.toString().toLowerCase().contains(keyword.toLowerCase())) return true;
+                    }
+                }
+            } else { // 기본값은 제목(subject) 검색
+                String subj = m.getSubject();
+                if (subj != null && subj.toLowerCase().contains(keyword.toLowerCase())) return true;
+            }
+        } catch (Exception e) {
+            return false;
+        }
+        return false;
+    }
+
+    // 💡 [수정] 검색어가 있을 경우 필터링된 메일의 총 개수를, 없으면 전체 개수를 반환
+    public int getTotalMessageCount(String searchType, String keyword) {
         int count = 0;
         if (!connectToStore()) {
             return count;
@@ -81,19 +103,31 @@ public class Pop3Agent {
         try {
             Folder folder = store.getFolder("INBOX");
             folder.open(Folder.READ_ONLY);
-            count = folder.getMessageCount();
+            
+            if (keyword == null || keyword.trim().isEmpty()) {
+                count = folder.getMessageCount();
+            } else {
+                // 검색어가 있으면 일일이 확인하여 카운트 증가
+                Message[] messages = folder.getMessages();
+                FetchProfile fp = new FetchProfile();
+                fp.add(FetchProfile.Item.ENVELOPE);
+                folder.fetch(messages, fp);
+                for (Message m : messages) {
+                    if (isMatch(m, searchType, keyword)) count++;
+                }
+            }
             folder.close(false);
             store.close();
         } catch (Exception ex) {
-            log.error("Pop3Agent.getTotalMessageCount() 예외: {}", ex.getMessage());
+            log.error("검색 메일 개수 조회 예외: {}", ex.getMessage());
         }
-        return count;
+        return count; 
     }
 
-    public String getMessageList(int page, int pageSize) {
+    // 💡 [수정] 전체 메일 중 검색어에 맞는 것만 필터링 후 정렬 및 페이징 처리
+    public String getMessageList(int page, int pageSize, String searchType, String keyword) {
         String result = "";
-        Message[] allMessages = null;
-
+        
         if (!connectToStore()) {
             log.error("POP3 connection failed!");
             return "POP3 연결이 되지 않아 메일 목록을 볼 수 없습니다.";
@@ -103,17 +137,28 @@ public class Pop3Agent {
             Folder folder = store.getFolder("INBOX");
             folder.open(Folder.READ_ONLY);
 
-            int totalMessages = folder.getMessageCount();
+            Message[] allMessages = folder.getMessages();
+            FetchProfile fp = new FetchProfile();
+            fp.add(FetchProfile.Item.ENVELOPE);
+            folder.fetch(allMessages, fp);
+
+            // 1. 검색어 유무에 따른 필터링 (In-Memory Filter)
+            java.util.List<Message> filteredList = new java.util.ArrayList<>();
+            boolean isSearch = (keyword != null && !keyword.trim().isEmpty());
+
+            for (Message m : allMessages) {
+                if (!isSearch || isMatch(m, searchType, keyword)) {
+                    filteredList.add(m);
+                }
+            }
+
+            int totalMessages = filteredList.size();
 
             if (totalMessages > 0) {
-                allMessages = folder.getMessages();
+                Message[] filteredArray = filteredList.toArray(new Message[0]);
 
-                FetchProfile fp = new FetchProfile();
-                fp.add(FetchProfile.Item.ENVELOPE);
-                folder.fetch(allMessages, fp);
-
-                // 날짜 기준 최신순 정렬 (오름차순)
-                java.util.Arrays.sort(allMessages, new java.util.Comparator<Message>() {
+                // 2. 필터링된 메일들을 최신 날짜순으로 정렬 (오름차순)
+                java.util.Arrays.sort(filteredArray, new java.util.Comparator<Message>() {
                     @Override
                     public int compare(Message m1, Message m2) {
                         try {
@@ -129,28 +174,32 @@ public class Pop3Agent {
                     }
                 });
 
+                // 3. 현재 페이지 구간 자르기
                 int endIndex = totalMessages - ((page - 1) * pageSize);
                 int startIndex = Math.max(0, endIndex - pageSize);
 
-                Message[] pagedMessages = java.util.Arrays.copyOfRange(allMessages, startIndex, endIndex);
+                Message[] pagedMessages = java.util.Arrays.copyOfRange(filteredArray, startIndex, endIndex);
 
+                // 4. HTML 표 생성
                 MessageFormatter formatter = new MessageFormatter(userid);
                 result = formatter.getMessageTable(pagedMessages);
             } else {
-                result = "<div style='padding:20px; text-align:center;'>수신된 메시지가 없습니다.</div>";
+                result = "<div style='padding:40px; text-align:center; color:#666; font-size:1.1em;'>"
+                       + "<strong>'" + (keyword != null ? keyword : "") + "'</strong>에 대한 검색 결과가 없습니다.</div>";
             }
 
             folder.close(true);
             store.close();
         } catch (Exception ex) {
-            log.error("Pop3Agent.getMessageList(page) 예외 = {}", ex.getMessage());
-            result = "Pop3Agent.getMessageList(page) 예외 = " + ex.getMessage();
+            log.error("검색 및 페이징 조회 예외 = {}", ex.getMessage());
+            result = "Pop3Agent.getMessageList 예외 = " + ex.getMessage();
         }
-        return result; // finally 내부 return 제거
+        return result; 
     }
     
+    // 💡 파라미터가 비어있을 경우를 대비한 기본 오버로딩 메서드 (하위 호환성)
     public String getMessageList() {
-        return getMessageList(1, 10);
+        return getMessageList(1, 10, null, null);
     }
 
     public String getMessage(int n) {
@@ -180,7 +229,7 @@ public class Pop3Agent {
             log.error("Pop3Agent.getMessageList() : exception = {}", ex);
             result = "Pop3Agent.getMessage() : exception = " + ex;
         }
-        return result; // finally 내부 return 제거
+        return result; 
     }
 
     private boolean connectToStore() {
@@ -192,7 +241,7 @@ public class Pop3Agent {
         props.setProperty("mail.pop3.disablecapa", "true");
 
         Session session = Session.getInstance(props);
-        session.setDebug(false); // 불필요한 설정 축소 및 중복 제거
+        session.setDebug(false); 
 
         try {
             store = session.getStore("pop3");
@@ -201,6 +250,6 @@ public class Pop3Agent {
         } catch (Exception ex) {
             log.error("connectToStore 예외: {}", ex.getMessage());
         }
-        return status; // finally 내부 return 제거
+        return status; 
     }
 }

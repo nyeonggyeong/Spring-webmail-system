@@ -128,7 +128,10 @@ public class SystemController {
     }
 
     @GetMapping("/main_menu")
-    public String mainMenu(@RequestParam(value = "page", defaultValue = "1") int page, HttpSession session, Model model) {
+    public String mainMenu(@RequestParam(value = "page", defaultValue = "1") int page, 
+                           @RequestParam(value = "searchType", required = false) String searchType,
+                           @RequestParam(value = "keyword", required = false) String keyword,
+                           HttpSession session, Model model) {
         String host = (String) session.getAttribute("host");
         String userid = (String) session.getAttribute("userid");
         String password = (String) session.getAttribute("password");
@@ -137,30 +140,26 @@ public class SystemController {
             return "redirect:/";
         }
 
-        Pop3Agent pop3Agent = new Pop3Agent(host, userid, password);
+        deu.cse.spring_webmail.model.Pop3Agent pop3Agent = new deu.cse.spring_webmail.model.Pop3Agent(host, userid, password);
 
-        // 💡 1. 전체 메일 개수(totalItems)를 구합니다.
-        // Pop3Agent에 이 기능을 새로 추가해야 합니다. (아래 2번 단계에서 진행)
-        int totalItems = pop3Agent.getTotalMessageCount();
+        // 💡 검색어가 넘어오면 검색된 메일의 개수만, 없으면 전체 개수를 가져옵니다.
+        int totalItems = pop3Agent.getTotalMessageCount(searchType, keyword);
 
-        // 💡 2. 페이징 계산
         int pageSize = 10;
         int totalPages = (int) Math.ceil((double) totalItems / pageSize);
-        if (page < 1) {
-            page = 1;
-        }
-        if (page > totalPages && totalPages > 0) {
-            page = totalPages;
-        }
+        if (page < 1) page = 1;
+        if (page > totalPages && totalPages > 0) page = totalPages;
 
-        // 💡 3. 현재 페이지에 해당하는 테이블 문자열만 받아옵니다.
-        // Pop3Agent의 getMessageList 메서드에 페이지 정보를 넘기도록 수정할 것입니다.
-        String messageListStr = pop3Agent.getMessageList(page, pageSize);
+        // 💡 검색어 필터링이 적용된 메일 목록을 가져옵니다.
+        String messageListStr = pop3Agent.getMessageList(page, pageSize, searchType, keyword);
 
-        // 💡 4. JSP로 결과 전송
         model.addAttribute("messageList", messageListStr);
         model.addAttribute("currentPage", page);
         model.addAttribute("totalPages", totalPages);
+        
+        // 검색창 UI 유지를 위해 값을 다시 넘겨줌
+        model.addAttribute("searchType", searchType);
+        model.addAttribute("keyword", keyword);
 
         return "main_menu";
     }
