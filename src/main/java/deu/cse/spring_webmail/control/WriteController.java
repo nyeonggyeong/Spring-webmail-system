@@ -56,10 +56,46 @@ public class WriteController {
     private JdbcTemplate jdbcTemplate;
 
     @GetMapping("/write_mail")
-    public String writeMail() {
+    public String writeMail(Model model) {
         log.debug("write_mail called...");
-        session.removeAttribute("sender");  // 220612 LJM - 메일 쓰기 시는 
+        session.removeAttribute("sender");
+
+        String userid = (String) session.getAttribute("userid");
+        if (userid != null) {
+            try {
+                String sql = "SELECT * FROM draft_mail WHERE userid = ?";
+                Map<String, Object> draft = jdbcTemplate.queryForMap(sql, userid);
+                model.addAttribute("draft", draft);
+                log.debug("임시저장된 메일을 성공적으로 불러왔습니다.");
+            } catch (Exception e) {
+            }
+        }
         return "write_mail/write_mail";
+    }
+
+    @PostMapping("/auto_save.do")
+    @org.springframework.web.bind.annotation.ResponseBody // 화면 이동 없이 순수 문자열 결과만 반환
+    public String autoSave(@RequestParam("to") String to,
+            @RequestParam("cc") String cc,
+            @RequestParam("subj") String subj,
+            @RequestParam("body") String body) {
+        String userid = (String) session.getAttribute("userid");
+        if (userid == null) {
+            return "fail";
+        }
+
+        String sql = "INSERT INTO draft_mail (userid, receiver, cc, subject, body, save_time) "
+                + "VALUES (?, ?, ?, ?, ?, NOW()) "
+                + "ON DUPLICATE KEY UPDATE "
+                + "receiver = ?, cc = ?, subject = ?, body = ?, save_time = NOW()";
+
+        try {
+            jdbcTemplate.update(sql, userid, to, cc, subj, body, to, cc, subj, body);
+            return "success";
+        } catch (Exception e) {
+            log.error("자동 임시저장 오류: {}", e.getMessage());
+            return "fail";
+        }
     }
 
     @GetMapping("/address_book_popup")
@@ -147,7 +183,7 @@ public class WriteController {
         }
 
         if (agent.sendMessage()) {
-            status = true;  
+            status = true;
         }
         return status;
     }
