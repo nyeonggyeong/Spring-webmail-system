@@ -94,7 +94,6 @@ public class Pop3Agent {
         return false;
     }
 
-    // 💡 [수정] 검색어가 있을 경우 필터링된 메일의 총 개수를, 없으면 전체 개수를 반환
     public int getTotalMessageCount(String searchType, String keyword) {
         int count = 0;
         if (!connectToStore()) {
@@ -144,7 +143,7 @@ public class Pop3Agent {
 
             // 1. 검색어 유무에 따른 필터링 (In-Memory Filter)
             java.util.List<Message> filteredList = new java.util.ArrayList<>();
-            boolean isSearch = (keyword != null && !keyword.trim().isEmpty());
+            boolean isSearch = keyword != null && !keyword.trim().isEmpty();
 
             for (Message m : allMessages) {
                 if (!isSearch || isMatch(m, searchType, keyword)) {

@@ -140,7 +140,7 @@ public class SystemController {
             return "redirect:/";
         }
 
-        deu.cse.spring_webmail.model.Pop3Agent pop3Agent = new deu.cse.spring_webmail.model.Pop3Agent(host, userid, password);
+        Pop3Agent pop3Agent = new Pop3Agent(host, userid, password);
 
         // 💡 검색어가 넘어오면 검색된 메일의 개수만, 없으면 전체 개수를 가져옵니다.
         int totalItems = pop3Agent.getTotalMessageCount(searchType, keyword);

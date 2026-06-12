@@ -102,10 +102,8 @@ public class UserAdminAgent {
         } catch (Exception ex) {
             log.error("addUser 예외: {}", ex.getMessage());
             status = false;
-        } finally {
-            // 5: 상태 반환
-            return status;
-        }
+        } 
+         return status;
     }  // addUser()
 
     public List<String> getUserList() {
@@ -135,9 +133,8 @@ public class UserAdminAgent {
             quit();
         } catch (Exception ex) {
             log.error("getUserList(): 예외 = {}", ex.getMessage());
-        } finally {
-            return userList;
-        }
+        } 
+        return userList;
     }  // getUserList()
 
     private List<String> parseUserList(String message) {
@@ -197,9 +194,8 @@ public class UserAdminAgent {
             quit();
         } catch (Exception ex) {
             log.error("deleteUsers(): 예외 = {}", ex.getMessage());
-        } finally {
-            return status;
-        }
+        } 
+        return status;
     }  // deleteUsers()
 
     public boolean verify(String userid) {
@@ -223,9 +219,8 @@ public class UserAdminAgent {
             quit();  // quit command
         } catch (IOException ex) {
             log.error("verify(): 예외 = {}", ex.getMessage());
-        } finally {
-            return status;
-        }
+        } 
+        return status;
     }
 
     private boolean connect() {
@@ -294,8 +289,7 @@ public class UserAdminAgent {
             }
         } catch (IOException ex) {
             log.error("quit() 예외: {}", ex);
-        } finally {
-            return status;
-        }
+        } 
+        return status;
     }
 }

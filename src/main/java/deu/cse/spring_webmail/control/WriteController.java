@@ -68,6 +68,7 @@ public class WriteController {
                 model.addAttribute("draft", draft);
                 log.debug("임시저장된 메일을 성공적으로 불러왔습니다.");
             } catch (Exception e) {
+                log.error("에러 발생: {}", e.getMessage());
             }
         }
         return "write_mail/write_mail";

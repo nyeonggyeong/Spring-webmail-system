@@ -75,7 +75,6 @@
             }
 
             $(document).ready(function() {
-                // Summernote 에디터 초기화
                 $('#summernote').summernote({
                     placeholder: '메일 본문을 자유롭게 작성해주세요.',
                     tabsize: 2,
